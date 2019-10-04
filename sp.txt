@@ -1,0 +1,243 @@
+
+
+
+use PecuniaBanking
+drop table CustomerService.CreditCard
+go
+drop table CustomerService.DebitCard
+go
+use PecuniaBanking
+create table CustomerService.CreditCard
+(
+        CreditCardId varchar(12) Primary Key,
+       --CustomerId UniqueIdentifier References Customer(CustomerID),
+	   CustomerId varchar(12) not null,
+		  CustomerNameAsPerCard varchar(50) not null,
+         CardNumber char(12) not null,
+         CardIssueDate DateTime,
+         LastModifiedDate Datetime,
+		 CreditLimit decimal not null,
+        ExpiryMMYYYY varchar(7) not null,
+         CardType varchar(20) not null,
+         CardStatus varchar(12) not null )
+		 go
+	use PecuniaBanking
+		 create table CustomerService.DebitCard
+(
+        DebitCardId varchar(12) Primary Key,
+       --AccountId UniqueIdentifier References Account(AccountID),
+	   AccountId varchar(12) not null,
+		  CustomerNameAsPerCard varchar(50) not null,
+         CardNumber char(12) not null,
+         CardIssueDate DateTime,
+         LastModifiedDate Datetime,
+        ExpiryMMYYYY varchar(7) not null,
+         CardType varchar(20) not null,
+         CardStatus varchar(12) not null )
+		 go
+		use PecuniaBanking
+		drop table CustomerService.ChequeBook
+
+		use PecuniaBanking
+		create table CustomerService.ChequeBook
+(
+        ChequeBookId varchar(12) Primary Key,
+       --AccountId UniqueIdentifier References Account(AccountID),
+	   AccountId varchar(12) not null,
+	   AccountNo char(10) not null,
+        SeriesStart decimal not null,
+        ChequeBookRequestDate  DateTime,
+         NumberOfLeaves int,
+         LastModifiedDate Datetime,
+         ChequeBookStatus varchar(12) not null )
+		 go
+create procedure AddCreditCard
+(@creditCardId varchar(12), @custId varchar(12), @custName varchar(50),@cardNumber char(12),@creditLimit decimal,@expiry varchar(7),@cardType varchar(20),@cardStatus varchar(12))
+as
+begin
+begin try
+--if (not exists(select *from Customer where CustomerId=@custId))
+	--throw 50000,'Customer not found',1;
+if (2>=len(@custName) or len(@custName)>=40)
+throw 100,'Customer name should be beween 2 and 40 characters',1;
+if(len(@cardNumber)!=12)
+throw 3000,'Invalid card number',1;
+if(@creditLimit<=0)
+throw 3000,'Credit Limit should not be negative',1;
+if(@cardType!='Platinum Plus' and @cardType!='Visa Signature' and @cardType!='Infinia')
+throw 3000,'Card Type should be Platinum Plus  or Visa Signature or Infinia',1;
+insert into CustomerService.CreditCard values(@creditCardId,@custId,@custName,@cardNumber,GetDate(),GetDate(),@creditLimit,@expiry,@cardType,@cardStatus)
+end try
+begin catch
+	throw;
+end catch
+end
+go
+ exec AddCreditCard '123aer','qwer456','Tarun','100010001000',20000,'09/24','Infinia','Active'
+ go
+create procedure GetAllCreditCards
+as
+begin
+select *from CustomerService.CreditCard
+end
+go
+
+exec GetAllCreditCards
+go
+create procedure UpdateCreditCardStatus(@cardNumber char(12) ,@cardStatus varchar(12))
+as
+begin
+if (not exists(select *from CustomerService.CreditCard where CardNumber=@cardNumber))
+	throw 50000,'Customer not found',1;
+update CustomerService.CreditCard
+set
+CardStatus=@cardStatus,
+LastModifiedDate=current_timestamp
+where CardNumber=@cardNumber
+end
+go
+ exec UpdateCreditCardStatus'100010001000','Blocked'
+ go
+ SELECT * FROM CustomerService.CreditCard
+ GO
+create procedure GetCreditCardsByCustomerId(@custId varchar(12))
+as
+begin
+select *from CustomerService.CreditCard
+ where CustomerId=@custId
+ end
+ go
+ exec GetCreditCardsByCustomerId'qwer456'
+ go
+ create procedure GetCreditCardByCreditCardNumber(@cardNumber char(12))
+ as
+ begin
+ select *from CustomerService.CreditCard
+ where CardNumber=@cardNumber
+ end
+ go
+ 
+ exec  GetCreditCardByCreditCardNumber'100010001000'
+ go
+ create procedure AddDebitCard
+(@debitCardId varchar(12), @accountId varchar(12), @custName varchar(50),@cardNumber char(12),@expiry varchar(7),@cardType varchar(20),@cardStatus varchar(12))
+as
+begin
+begin try
+--if (not exists(select *from Account where AccountId=@accountId))
+	--throw 50000,'Account not found',1;
+if (2>=len(@custName) or len(@custName)>=40)
+throw 100,'Customer name should be beween 2 and 40 characters',1;
+if(len(@cardNumber)!=12)
+throw 3000,'Invalid card number',1;
+if(@cardType!='Rupay' and @cardType!='VISA' and @cardType!='Maestro' and @cardType!='MasterCard')
+throw 3000,'Card Type should be Rupay or VISA or maestro or mastercard ',1;
+insert into CustomerService.DebitCard values(@debitCardId,@accountId,@custName,@cardNumber,GetDate(),GetDate(),@expiry,@cardType,@cardStatus)
+end try
+begin catch
+	throw;
+end catch
+end 
+go
+exec AddDebitCard'1234ert','wwret456','Tarunsree','100010001001','09/2024','VISA','Active'
+
+create procedure GetAllDebitCards
+as
+begin
+select *from CustomerService.DebitCard
+end
+go
+
+exec GetAllDebitCards
+go
+
+create procedure UpdateDebitCardStatus(@cardNumber char(12),@cardStatus varchar(12))
+as
+begin
+if (not exists(select *from CustomerService.DebitCard where CardNumber=@cardNumber))
+	throw 50000,'Customer not found',1;
+update CustomerService.DebitCard
+set
+CardStatus=@cardStatus,
+LastModifiedDate=current_timestamp
+where CardNumber=@cardNumber
+end
+go
+exec UpdateDebitCardStatus'100010001002','Blocked'
+go
+
+create procedure GetDebitCardsByAccountId(@accountId varchar)
+as
+begin
+select *from CustomerService.DebitCard
+ where AccountId=@accountId
+ end
+ go
+
+ create procedure GetDebitCardByDebitCardNumber(@cardNumber char(12))
+ as
+ begin
+ select *from CustomerService.DebitCard
+ where CardNumber=@cardNumber
+ end
+ go
+
+ create procedure AddChequeBook1
+ (@chequeBookId varchar,@accountId varchar,@accountNo char(10),@seriesStart decimal,@numberOfLeaves int,@chequeBookStatus varchar(12))
+ as
+ begin
+ begin try
+-- if (not exists(select *from Account where AccountId=@accountId))
+	--throw 50000,'Account not found',1;
+	if(@numberOfLeaves%5!=0)
+	throw 3000,'Number of leaves should me multiple of 5',1;
+	if(@chequeBookStatus!='Requested' and @chequeBookStatus!='Approved')
+	throw 3000,'Status of cheque book should be either requested or approved',2;
+	insert into CustomerService.ChequeBook values (@chequeBookId ,@accountId,@accountNo,@seriesStart,GetDate(),@numberOfLeaves,GetDate(),@chequeBookStatus )
+	end try
+begin catch
+	throw;
+end catch
+end 
+go
+ exec AddChequeBook'qwertyu678','1234ert','1000000001',100000,50,'Requested'
+ go
+create procedure GetAllChequeBooks
+as
+begin
+select *from CustomerService.ChequeBook
+end
+go
+exec GetAllChequeBooks
+go
+create procedure GetChequeBookByChequeBookId(@chequeBookId uniqueIdentifier)
+ as
+ begin
+ select *from CustomerService.ChequeBook
+ where ChequeBookId=@chequeBookId
+ end
+ go
+
+ create procedure GetChequeBookBySeriesStart(@seriesStart decimal)
+ as
+ begin
+ select *from CustomerService.ChequeBook
+ where SeriesStart=@seriesStart
+ end
+ go
+
+ create procedure GetChequeBooksByAccountIdAndStatus(@accountId char(10),@chequeBookStatus varchar(12))
+ as
+ begin
+ select *from CustomerService.ChequeBook
+ where AccountId=@accountId and ChequeBookStatus=@chequeBookStatus
+ end
+ go
+
+create procedure GetChequeBooksByAccountId(@accountId char(10))
+ as
+ begin
+ select *from CustomerService.ChequeBook
+ where AccountId=@accountId
+ end
+ go
